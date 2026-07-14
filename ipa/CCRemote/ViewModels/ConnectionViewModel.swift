@@ -1,13 +1,12 @@
 import Foundation
 
 /// 连接配置管理
-@Observable
-final class ConnectionViewModel {
-    var relayURL: String = ""
-    var relayToken: String = ""
-    var isConfigured: Bool = false
-    var isConnecting = false
-    var connectionError: String?
+final class ConnectionViewModel: ObservableObject {
+    @Published var relayURL: String = ""
+    @Published var relayToken: String = ""
+    @Published var isConfigured: Bool = false
+    @Published var isConnecting = false
+    @Published var connectionError: String?
 
     private let apiKey = "relay_url"
     private let tokenKey = "relay_token"
@@ -22,7 +21,7 @@ final class ConnectionViewModel {
         isConfigured = !relayURL.isEmpty && !relayToken.isEmpty
     }
 
-    /// 保存并测试连接
+    @MainActor
     func saveAndTest() async -> Bool {
         guard !relayURL.isEmpty, !relayToken.isEmpty else {
             connectionError = "请输入地址和 Token"
@@ -52,7 +51,6 @@ final class ConnectionViewModel {
         return false
     }
 
-    /// 重置配置
     func reset() {
         KeychainHelper.delete(key: apiKey)
         KeychainHelper.delete(key: tokenKey)

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 会话列表
 struct SessionListView: View {
-    @State var viewModel: SessionListViewModel
+    @ObservedObject var viewModel: SessionListViewModel
     let project: Project
     let baseURL: String
     let token: String
@@ -75,12 +75,6 @@ struct SessionListView: View {
         } message: {
             Text("输入你想让 Claude 处理的问题")
         }
-        .navigationDestination(for: String.self) { sessionID in
-            // 新建会话跳转
-            let api = RelayAPI(baseURL: baseURL, token: token)
-            let vm = ChatViewModel(api: api)
-            ChatView(viewModel: vm, baseURL: baseURL, token: token, project: project.name)
-        }
     }
 
     private func chatView(for session: SessionListItem) -> some View {
@@ -96,8 +90,6 @@ struct SessionListView: View {
     }
 
     private func startNewSession() {
-        let api = RelayAPI(baseURL: baseURL, token: token)
-        let vm = ChatViewModel(api: api)
-        // 通过 State 控制导航
+        // TODO: implement new session navigation
     }
 }

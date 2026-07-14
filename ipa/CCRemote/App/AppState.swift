@@ -1,11 +1,10 @@
 import Foundation
 
 /// 全局应用状态
-@Observable
-final class AppState {
-    var isConnected = false
-    var relayURL: String = ""
-    var relayToken: String = ""
+final class AppState: ObservableObject {
+    @Published var isConnected = false
+    @Published var relayURL: String = ""
+    @Published var relayToken: String = ""
 
     var relayAPI: RelayAPI? {
         guard !relayURL.isEmpty, !relayToken.isEmpty else { return nil }

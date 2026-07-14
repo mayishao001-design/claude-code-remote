@@ -2,14 +2,13 @@ import Foundation
 
 /// WebSocket 管理器（纯 URLSessionWebSocketTask，无外部依赖）
 /// 管理连接生命周期、自动重连、消息流式接收
-@Observable
-final class WebSocketManager {
+final class WebSocketManager: ObservableObject {
     private var task: URLSessionWebSocketTask?
     private let session = URLSession(configuration: .default)
     private var reconnectTimer: Timer?
 
-    var isConnected = false
-    var lastError: String?
+    @Published var isConnected = false
+    @Published var lastError: String?
 
     private let baseURL: String
     private let token: String
@@ -25,12 +24,9 @@ final class WebSocketManager {
         self.token = token
     }
 
-    // MARK: - Connect / Disconnect
-
     func connect() {
         disconnect()
 
-        // ws:// or wss:// from http://
         var wsURL = baseURL
             .replacingOccurrences(of: "https://", with: "wss://")
             .replacingOccurrences(of: "http://", with: "ws://")
@@ -55,8 +51,6 @@ final class WebSocketManager {
         task = nil
         isConnected = false
     }
-
-    // MARK: - Send
 
     func sendMessage(sessionId: String, text: String) {
         let msg = ClientMessage(type: "send_message", sessionId: sessionId, text: text, project: nil)
@@ -91,8 +85,6 @@ final class WebSocketManager {
         }
     }
 
-    // MARK: - Receive
-
     private func receiveMessage() {
         task?.receive { [weak self] result in
             DispatchQueue.main.async {
@@ -108,9 +100,7 @@ final class WebSocketManager {
                     @unknown default:
                         break
                     }
-                    // 继续监听下一条
                     self?.receiveMessage()
-
                 case .failure(let error):
                     self?.handleError(error.localizedDescription)
                 }
@@ -138,14 +128,11 @@ final class WebSocketManager {
         }
     }
 
-    // MARK: - Reconnect
-
     private func handleError(_ error: String) {
         lastError = error
         isConnected = false
         onError?(error)
 
-        // 指数退避重连
         reconnectTimer?.invalidate()
         reconnectTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { [weak self] _ in
             self?.connect()

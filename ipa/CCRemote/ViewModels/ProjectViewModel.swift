@@ -1,11 +1,10 @@
 import Foundation
 
 /// 项目列表
-@Observable
-final class ProjectViewModel {
-    var projects: [Project] = []
-    var isLoading = false
-    var error: String?
+final class ProjectViewModel: ObservableObject {
+    @Published var projects: [Project] = []
+    @Published var isLoading = false
+    @Published var error: String?
 
     private let api: RelayAPI
 
@@ -13,6 +12,7 @@ final class ProjectViewModel {
         self.api = api
     }
 
+    @MainActor
     func load() async {
         isLoading = true
         error = nil

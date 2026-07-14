@@ -1,8 +1,7 @@
 import Foundation
 
 /// 聊天界面状态
-@Observable
-final class ChatViewModel {
+final class ChatViewModel: ObservableObject {
     enum State: Equatable {
         case idle
         case connecting
@@ -10,10 +9,10 @@ final class ChatViewModel {
         case error(String)
     }
 
-    var state: State = .idle
-    var messages: [ChatMessage] = []
-    var currentStreamingText = ""
-    var currentSessionID: String?
+    @Published var state: State = .idle
+    @Published var messages: [ChatMessage] = []
+    @Published var currentStreamingText = ""
+    @Published var currentSessionID: String?
 
     private let api: RelayAPI
     private var ws: WebSocketManager?
@@ -30,7 +29,7 @@ final class ChatViewModel {
 
     // MARK: - Session Management
 
-    /// 加载已有会话历史
+    @MainActor
     func loadSession(id: String) async {
         do {
             let session = try await api.getSession(id: id)
@@ -43,34 +42,34 @@ final class ChatViewModel {
         }
     }
 
-    /// 连接 WebSocket
     func connectWS(baseURL: String, token: String) {
         let mgr = WebSocketManager(baseURL: baseURL, token: token)
 
         mgr.onChunk = { [weak self] text in
-            self?.currentStreamingText += text
+            DispatchQueue.main.async {
+                self?.currentStreamingText += text
+            }
         }
 
         mgr.onEnd = { [weak self] in
             guard let self else { return }
-            // 流结束 → 把累积文本作为一条 assistant 消息
-            if !self.currentStreamingText.isEmpty {
-                self.messages.append(ChatMessage(
-                    id: UUID().uuidString,
-                    role: "assistant",
-                    text: self.currentStreamingText
-                ))
-                self.currentStreamingText = ""
+            DispatchQueue.main.async {
+                if !self.currentStreamingText.isEmpty {
+                    self.messages.append(ChatMessage(
+                        id: UUID().uuidString,
+                        role: "assistant",
+                        text: self.currentStreamingText
+                    ))
+                    self.currentStreamingText = ""
+                }
+                self.state = .idle
             }
-            self.state = .idle
         }
 
         mgr.onError = { [weak self] error in
-            self?.state = .error(error)
-        }
-
-        mgr.onSessionUpdated = { [weak self] in
-            // 可以触发 session 列表刷新
+            DispatchQueue.main.async {
+                self?.state = .error(error)
+            }
         }
 
         mgr.connect()
@@ -81,22 +80,19 @@ final class ChatViewModel {
 
     func sendMessage(_ text: String) {
         guard let sessionID = currentSessionID, !text.isEmpty else { return }
-
-        messages.append(ChatMessage(id: UUID().uuidString, role: "user", text: text))
+        let msg = ChatMessage(id: UUID().uuidString, role: "user", text: text)
+        messages.append(msg)
         state = .streaming
         currentStreamingText = ""
-
         ws?.sendMessage(sessionId: sessionID, text: text)
     }
 
     func startNewSession(project: String, initialPrompt: String?) {
         state = .connecting
         currentStreamingText = ""
-
         if let prompt = initialPrompt, !prompt.isEmpty {
             messages.append(ChatMessage(id: UUID().uuidString, role: "user", text: prompt))
         }
-
         ws?.startSession(project: project, initialPrompt: initialPrompt)
         state = .streaming
     }

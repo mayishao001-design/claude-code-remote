@@ -1,11 +1,10 @@
 import Foundation
 
 /// 会话列表
-@Observable
-final class SessionListViewModel {
-    var sessions: [SessionListItem] = []
-    var isLoading = false
-    var error: String?
+final class SessionListViewModel: ObservableObject {
+    @Published var sessions: [SessionListItem] = []
+    @Published var isLoading = false
+    @Published var error: String?
 
     private let api: RelayAPI
 
@@ -13,6 +12,7 @@ final class SessionListViewModel {
         self.api = api
     }
 
+    @MainActor
     func load(project: String? = nil) async {
         isLoading = true
         error = nil
@@ -24,6 +24,7 @@ final class SessionListViewModel {
         isLoading = false
     }
 
+    @MainActor
     func deleteSession(id: String) async {
         do {
             try await api.deleteSession(id: id)

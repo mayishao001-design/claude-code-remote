@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 聊天主界面
 struct ChatView: View {
-    @State var viewModel: ChatViewModel
+    @ObservedObject var viewModel: ChatViewModel
     let baseURL: String
     let token: String
     let project: String
@@ -37,10 +37,10 @@ struct ChatView: View {
                     }
                     .padding()
                 }
-                .onChange(of: viewModel.messages.count) { _, _ in
+                .onChange(of: viewModel.messages.count) { _ in
                     scrollToBottom(proxy)
                 }
-                .onChange(of: viewModel.currentStreamingText) { _, _ in
+                .onChange(of: viewModel.currentStreamingText) { _ in
                     scrollToBottom(proxy)
                 }
             }
@@ -116,7 +116,6 @@ struct ChatView: View {
         inputText = ""
 
         if viewModel.currentSessionID == nil {
-            // 新会话
             viewModel.startNewSession(project: project, initialPrompt: text)
         } else {
             viewModel.sendMessage(text)

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 项目列表
 struct ProjectListView: View {
-    @State var viewModel: ProjectViewModel
+    @ObservedObject var viewModel: ProjectViewModel
     let baseURL: String
     let token: String
 

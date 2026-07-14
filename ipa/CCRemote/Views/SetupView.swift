@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 首次引导：输入 Relay 地址 + Token
 struct SetupView: View {
-    @State var connVM: ConnectionViewModel
+    @ObservedObject var connVM: ConnectionViewModel
     let onComplete: () -> Void
 
     @State private var showError = false

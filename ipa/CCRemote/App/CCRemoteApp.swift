@@ -3,7 +3,7 @@ import SwiftUI
 /// 应用入口
 @main
 struct CCRemoteApp: App {
-    @State private var connVM = ConnectionViewModel()
+    @StateObject private var connVM = ConnectionViewModel()
     @State private var isSetup = false
 
     var body: some Scene {

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 主界面：项目列表或连接配置
 struct ContentView: View {
-    @State var connVM: ConnectionViewModel
+    @ObservedObject var connVM: ConnectionViewModel
     @State private var showSettings = false
 
     var body: some View {
