@@ -16,6 +16,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Show build environment
+        run: |
+          xcode-select -p
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || echo "No iOS SDK found"
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
@@ -23,14 +29,15 @@ jobs:
         run: |
           cd ipa
           xcodegen generate
-          echo "=== Generated project ==="
-          ls -la CCRemote.xcodeproj/
-          xcodebuild -project CCRemote.xcodeproj -list
+          echo "=== Project contents ==="
+          ls -la *.xcodeproj/
+          echo "=== Schemes ==="
+          xcodebuild -list -project *.xcodeproj
 
-      - name: Build IPA
+      - name: Build .app (unsigned)
         run: |
           cd ipa
-          set -o pipefail
+          # Build
           xcodebuild \
             -project CCRemote.xcodeproj \
             -scheme CCRemote \
@@ -40,28 +47,30 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             -derivedDataPath build \
-            build 2>&1 | tee xcodebuild.log
+            -destination "generic/platform=iOS" \
+            build 2>&1 || echo "FIRST_ATTEMPT_FAILED"
 
-          echo "=== Checking build result ==="
-          # 检查 .app 是否生成
-          APP_PATH="build/Build/Products/Release-iphoneos/CCRemote.app"
-          if [ -d "$APP_PATH" ]; then
-            echo "Build SUCCESS - .app found at $APP_PATH"
-            # 打包 IPA
-            mkdir -p Payload
-            cp -r "$APP_PATH" Payload/
-            cd Payload && zip -r ../CCRemote.ipa CCRemote.app/ && cd ..
-            ls -lh CCRemote.ipa
-          else
-            echo "Build FAILED - .app not found"
-            # 尝试找任何 .app
-            find build -name "*.app" -type d 2>/dev/null
-            # 输出最后的错误
-            grep -E "(error:|fatal error:|FAILED)" xcodebuild.log | tail -20 || echo "No error patterns found"
+          # Check output
+          echo "=== Build products ==="
+          find build -name "*.app" -type d 2>/dev/null || echo "No .app found"
+
+      - name: Package IPA
+        run: |
+          cd ipa
+          APP_PATH=$(find build -name "CCRemote.app" -type d 2>/dev/null | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: No .app found!"
+            # Try to find any .app
+            find / -name "*.app" -maxdepth 6 -type d 2>/dev/null | head -5 || true
             exit 1
           fi
+          echo "Found .app at: $APP_PATH"
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          cd Payload && zip -r ../CCRemote.ipa CCRemote.app/ && cd ..
+          ls -lh CCRemote.ipa
 
-      - name: Upload IPA (unsigned, for TrollStore)
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: CCRemote-unsigned
