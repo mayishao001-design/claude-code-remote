@@ -16,11 +16,7 @@ struct SessionListView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity)
             } else if viewModel.sessions.isEmpty {
-                ContentUnavailableView(
-                    "暂无会话",
-                    systemImage: "message",
-                    description: Text("在电脑上启动 Claude Code 后将出现在这里")
-                )
+                emptyView("暂无会话", icon: "message", hint: "在电脑上启动 Claude Code 后将出现在这里")
             } else {
                 ForEach(viewModel.sessions) { session in
                     NavigationLink(destination: chatView(for: session)) {
@@ -55,8 +51,9 @@ struct SessionListView: View {
         }
         .listStyle(.plain)
         .navigationTitle(project.name)
+        .toolbarRole(.editor)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
                 Button(action: { showNewChat = true }) {
                     Image(systemName: "plus")
                 }
@@ -75,6 +72,27 @@ struct SessionListView: View {
         } message: {
             Text("输入你想让 Claude 处理的问题")
         }
+    }
+
+    @ViewBuilder
+    private func emptyView(_ title: String, icon: String, hint: String) -> some View {
+        VStack(spacing: 12) {
+            Spacer().frame(height: 60)
+            Image(systemName: icon)
+                .font(.system(size: 48))
+                .foregroundColor(.secondary.opacity(0.5))
+            Text(title)
+                .font(.headline)
+                .foregroundColor(.secondary)
+            Text(hint)
+                .font(.caption)
+                .foregroundColor(.secondary.opacity(0.7))
+                .multilineTextAlignment(.center)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 
     private func chatView(for session: SessionListItem) -> some View {

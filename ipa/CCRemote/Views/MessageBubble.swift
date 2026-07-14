@@ -16,7 +16,7 @@ struct MessageBubble: View {
                     .font(.caption)
                     .foregroundColor(.accentColor)
                     .frame(width: 24, height: 24)
-                    .background(.accent.opacity(0.1))
+                    .background(Color.accentColor.opacity(0.1))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }
 

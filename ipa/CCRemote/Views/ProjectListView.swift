@@ -12,11 +12,7 @@ struct ProjectListView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity)
             } else if viewModel.projects.isEmpty {
-                ContentUnavailableView(
-                    "暂无项目",
-                    systemImage: "folder",
-                    description: Text("在电脑上编辑 ~/.claude-remote/projects.json 添加项目")
-                )
+                emptyView("暂无项目", icon: "folder", hint: "在电脑上编辑 ~/.claude-remote/projects.json 添加项目")
             } else {
                 ForEach(viewModel.projects) { project in
                     NavigationLink(destination: sessionList(for: project)) {
@@ -46,6 +42,27 @@ struct ProjectListView: View {
         .task {
             await viewModel.load()
         }
+    }
+
+    @ViewBuilder
+    private func emptyView(_ title: String, icon: String, hint: String) -> some View {
+        VStack(spacing: 12) {
+            Spacer().frame(height: 60)
+            Image(systemName: icon)
+                .font(.system(size: 48))
+                .foregroundColor(.secondary.opacity(0.5))
+            Text(title)
+                .font(.headline)
+                .foregroundColor(.secondary)
+            Text(hint)
+                .font(.caption)
+                .foregroundColor(.secondary.opacity(0.7))
+                .multilineTextAlignment(.center)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 
     private func sessionList(for project: Project) -> some View {
