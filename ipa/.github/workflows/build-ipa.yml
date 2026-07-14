@@ -1,0 +1,54 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ipa/**'
+  workflow_dispatch:
+  # 也可以设成手动 trigger，或者用 release tag
+
+jobs:
+  build:
+    runs-on: macos-15  # Intel and ARM Mac runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: |
+          cd ipa
+          xcodegen generate
+
+      - name: Build IPA (unsigned, for TrollStore)
+        run: |
+          cd ipa
+          xcodebuild \
+            -project CCRemote.xcodeproj \
+            -scheme CCRemote \
+            -sdk iphoneos \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath build \
+            build
+
+          # 生成 .app 包
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/CCRemote.app Payload/
+
+          # 打包成 IPA
+          zip -r CCRemote.ipa Payload/
+          rm -rf Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: CCRemote-unsigned
+          path: ipa/CCRemote.ipa
+          retention-days: 30

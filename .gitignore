@@ -1,0 +1,23 @@
+.tokensave
+
+# Relay build output
+relay/relay.exe
+relay/template/
+
+# IPA build output
+ipa/CCRemote.xcodeproj/
+ipa/Payload/
+ipa/build/
+ipa/*.ipa
+
+# Go
+*.out
+*.test
+*.test.exe
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (user-specific)
+.claude-remote/
