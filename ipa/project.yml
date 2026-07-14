@@ -1,7 +1,6 @@
 name: CCRemote
 options:
   bundleIdPrefix: com.ccremote
-  xcodeVersion: "16.0"
   deploymentTarget:
     iOS: "16.0"
 settings:
@@ -18,9 +17,21 @@ targets:
     type: application
     platform: iOS
     sources:
-      - CCRemote
+      - path: CCRemote
+        type: group
+        createsGroup: true
     settings:
       INFOPLIST_FILE: CCRemote/Info.plist
       PRODUCT_BUNDLE_IDENTIFIER: com.ccremote.app
     info:
       path: CCRemote/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: zh_CN
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        UIRequiredDeviceCapabilities:
+          - arm64

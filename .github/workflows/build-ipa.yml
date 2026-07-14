@@ -5,12 +5,12 @@ on:
     branches: [main]
     paths:
       - 'ipa/**'
+      - '.github/workflows/build-ipa.yml'
   workflow_dispatch:
-  # 也可以设成手动 trigger，或者用 release tag
 
 jobs:
   build:
-    runs-on: macos-15  # Intel and ARM Mac runner
+    runs-on: macos-15
 
     steps:
       - name: Checkout
@@ -23,10 +23,14 @@ jobs:
         run: |
           cd ipa
           xcodegen generate
+          echo "=== Generated project ==="
+          ls -la CCRemote.xcodeproj/
+          xcodebuild -project CCRemote.xcodeproj -list
 
-      - name: Build IPA (unsigned, for TrollStore)
+      - name: Build IPA
         run: |
           cd ipa
+          set -o pipefail
           xcodebuild \
             -project CCRemote.xcodeproj \
             -scheme CCRemote \
@@ -36,19 +40,31 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             -derivedDataPath build \
-            build
+            build 2>&1 | tee xcodebuild.log
 
-          # 生成 .app 包
-          mkdir -p Payload
-          cp -r build/Build/Products/Release-iphoneos/CCRemote.app Payload/
+          echo "=== Checking build result ==="
+          # 检查 .app 是否生成
+          APP_PATH="build/Build/Products/Release-iphoneos/CCRemote.app"
+          if [ -d "$APP_PATH" ]; then
+            echo "Build SUCCESS - .app found at $APP_PATH"
+            # 打包 IPA
+            mkdir -p Payload
+            cp -r "$APP_PATH" Payload/
+            cd Payload && zip -r ../CCRemote.ipa CCRemote.app/ && cd ..
+            ls -lh CCRemote.ipa
+          else
+            echo "Build FAILED - .app not found"
+            # 尝试找任何 .app
+            find build -name "*.app" -type d 2>/dev/null
+            # 输出最后的错误
+            grep -E "(error:|fatal error:|FAILED)" xcodebuild.log | tail -20 || echo "No error patterns found"
+            exit 1
+          fi
 
-          # 打包成 IPA
-          zip -r CCRemote.ipa Payload/
-          rm -rf Payload
-
-      - name: Upload IPA
+      - name: Upload IPA (unsigned, for TrollStore)
         uses: actions/upload-artifact@v4
         with:
           name: CCRemote-unsigned
           path: ipa/CCRemote.ipa
           retention-days: 30
+          if-no-files-found: error
