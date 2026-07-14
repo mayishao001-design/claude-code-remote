@@ -18,9 +18,9 @@ jobs:
 
       - name: Show build environment
         run: |
-          xcode-select -p
           xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || echo "No iOS SDK found"
+          xcrun --sdk iphoneos --show-sdk-path
+          xcrun --sdk iphoneos --show-sdk-version
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -29,15 +29,11 @@ jobs:
         run: |
           cd ipa
           xcodegen generate
-          echo "=== Project contents ==="
-          ls -la *.xcodeproj/
-          echo "=== Schemes ==="
-          xcodebuild -list -project *.xcodeproj
+          xcodebuild -list -project CCRemote.xcodeproj
 
       - name: Build .app (unsigned)
         run: |
           cd ipa
-          # Build
           xcodebuild \
             -project CCRemote.xcodeproj \
             -scheme CCRemote \
@@ -48,11 +44,26 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             -derivedDataPath build \
             -destination "generic/platform=iOS" \
-            build 2>&1 || echo "FIRST_ATTEMPT_FAILED"
+            build 2>&1 | tee xcodebuild.log
 
-          # Check output
-          echo "=== Build products ==="
-          find build -name "*.app" -type d 2>/dev/null || echo "No .app found"
+          echo "=== exit code: $? ==="
+
+          echo "=== DEBUG: all .app ==="
+          find build -name "*.app" -type d
+
+          echo "=== DEBUG: build products tree ==="
+          find build/Build/Products -type d -maxdepth 4 2>/dev/null || echo "No products dir"
+
+          echo "=== DEBUG: full built products ==="
+          ls -la build/Build/Products/Release-iphoneos/ 2>/dev/null || echo "No release dir"
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: ipa/xcodebuild.log
+          retention-days: 7
 
       - name: Package IPA
         run: |
@@ -60,11 +71,15 @@ jobs:
           APP_PATH=$(find build -name "CCRemote.app" -type d 2>/dev/null | head -1)
           if [ -z "$APP_PATH" ]; then
             echo "ERROR: No .app found!"
-            # Try to find any .app
-            find / -name "*.app" -maxdepth 6 -type d 2>/dev/null | head -5 || true
+            find build -type d -name "*.app" 2>/dev/null
             exit 1
           fi
           echo "Found .app at: $APP_PATH"
+          echo "=== .app contents ==="
+          find "$APP_PATH" -type f | head -20
+          echo "=== .app size ==="
+          du -sh "$APP_PATH"
+
           mkdir -p Payload
           cp -r "$APP_PATH" Payload/
           cd Payload && zip -r ../CCRemote.ipa CCRemote.app/ && cd ..
